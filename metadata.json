@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Experience Suite",
+  "description": "A professional interface for exploring Gemini 3 Flash and Gemini 2.5 Image capabilities, featuring Chat, Vision analysis, and Image generation.",
+  "requestFramePermissions": []
+}

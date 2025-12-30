@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atelier.G Glass Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Allura&family=Inter:wght@300;400;500;600;700&display=swap');
+
+      :root {
+        --glass-bg: rgba(8, 9, 12, 0.35);
+        --glass-border: rgba(255, 255, 255, 0.06);
+        --neon-white: #f0f7ff;
+        --neon-core: #ffffff;
+        --neon-glow: rgba(186, 230, 253, 0.25);
+        --neon-ambient: rgba(147, 197, 253, 0.08);
+        --etched-shadow: inset 1px 1px 3px rgba(0,0,0,1), inset -0.5px -0.5px 1.5px rgba(255,255,255,0.04);
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #000000;
+        background-image: radial-gradient(circle at center, #081024 0%, #000000 95%);
+        color: #f1f1f1;
+        overflow: hidden;
+        margin: 0;
+      }
+
+      /* Photorealistic Neon Light Bars */
+      .neon-bar {
+        position: absolute;
+        background: var(--neon-core);
+        z-index: 0;
+        pointer-events: none;
+        border-radius: 999px;
+        opacity: 0.8;
+      }
+
+      .neon-bar-top {
+        top: 20px; left: 15%; right: 15%; height: 6px;
+        box-shadow: 
+          0 0 8px #fff,
+          0 15px 60px 15px var(--neon-glow),
+          0 30px 100px 40px var(--neon-ambient);
+      }
+
+      .neon-bar-bottom {
+        bottom: 20px; left: 15%; right: 15%; height: 6px;
+        box-shadow: 
+          0 0 8px #fff,
+          0 -15px 60px 15px var(--neon-glow),
+          0 -30px 100px 40px var(--neon-ambient);
+      }
+
+      .neon-bar-left {
+        top: 15%; bottom: 15%; left: 20px; width: 6px;
+        box-shadow: 
+          0 0 8px #fff,
+          15px 0 60px 15px var(--neon-glow),
+          30px 0 100px 40px var(--neon-ambient);
+      }
+
+      .neon-bar-right {
+        top: 15%; bottom: 15%; right: 20px; width: 6px;
+        box-shadow: 
+          0 0 8px #fff,
+          -15px 0 60px 15px var(--neon-glow),
+          -30px 0 100px 40px var(--neon-ambient);
+      }
+
+      /* Refined Liquid Glass Typography */
+      .liquid-glass {
+        font-family: 'Allura', cursive;
+        background: linear-gradient(
+          to bottom,
+          #ffffff 0%,
+          #e2ecff 35%,
+          #ffffff 50%,
+          #93c5fd 65%,
+          #ffffff 100%
+        );
+        background-size: 100% 300%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        position: relative;
+        display: inline-block;
+        filter: drop-shadow(0 0 5px rgba(186, 230, 253, 0.2));
+        animation: glass-flow 20s infinite linear;
+      }
+
+      @keyframes glass-flow {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 0% 100%; }
+      }
+
+      .liquid-glass::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0; top: 0; z-index: 2;
+        background: linear-gradient(
+          155deg,
+          transparent 0%,
+          transparent 48%,
+          rgba(255, 255, 255, 0.6) 50%,
+          transparent 52%,
+          transparent 100%
+        );
+        background-size: 400% 400%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: glass-shimmer 12s infinite ease-in-out;
+        pointer-events: none;
+      }
+
+      @keyframes glass-shimmer {
+        0% { background-position: -200% -200%; }
+        100% { background-position: 200% 200%; }
+      }
+
+      /* Illuminated Real Glass */
+      .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(50px) saturate(180%);
+        border: 1px solid var(--glass-border);
+        position: relative;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+      }
+
+      .illuminated-glass {
+        position: relative;
+      }
+
+      .illuminated-glass::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        box-shadow: 0 0 15px 1px rgba(186, 230, 253, 0.3);
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      .glass-panel::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 0.8px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+
+      .etched-button {
+        background: rgba(255, 255, 255, 0.005);
+        box-shadow: var(--etched-shadow);
+        border: 1px solid rgba(255, 255, 255, 0.02);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .etched-button.active {
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 30px rgba(186, 230, 253, 0.12), inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.15);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      ::-webkit-scrollbar { width: 3px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+      }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
