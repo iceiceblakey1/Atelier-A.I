@@ -13,15 +13,15 @@
         --glass-border: rgba(255, 255, 255, 0.06);
         --neon-white: #f0f7ff;
         --neon-core: #ffffff;
-        --neon-glow: rgba(186, 230, 253, 0.25);
-        --neon-ambient: rgba(147, 197, 253, 0.08);
+        --neon-glow: rgba(65, 105, 225, 0.45);
+        --neon-ambient: rgba(65, 105, 225, 0.12);
         --etched-shadow: inset 1px 1px 3px rgba(0,0,0,1), inset -0.5px -0.5px 1.5px rgba(255,255,255,0.04);
       }
 
       body {
         font-family: 'Inter', sans-serif;
         background-color: #000000;
-        background-image: radial-gradient(circle at center, #081024 0%, #000000 95%);
+        background-image: radial-gradient(circle at center, #0a0e1a 0%, #000000 95%);
         color: #f1f1f1;
         overflow: hidden;
         margin: 0;
@@ -34,39 +34,45 @@
         z-index: 0;
         pointer-events: none;
         border-radius: 999px;
-        opacity: 0.8;
+        opacity: 0.9;
+        animation: neon-pulse 8s infinite ease-in-out;
+      }
+
+      @keyframes neon-pulse {
+        0%, 100% { opacity: 0.85; filter: brightness(1); }
+        50% { opacity: 1; filter: brightness(1.2); }
       }
 
       .neon-bar-top {
-        top: 20px; left: 15%; right: 15%; height: 6px;
+        top: 20px; left: 15%; right: 15%; height: 4px;
         box-shadow: 
-          0 0 8px #fff,
-          0 15px 60px 15px var(--neon-glow),
-          0 30px 100px 40px var(--neon-ambient);
+          0 0 10px #fff,
+          0 10px 50px 10px var(--neon-glow),
+          0 20px 80px 30px var(--neon-ambient);
       }
 
       .neon-bar-bottom {
-        bottom: 20px; left: 15%; right: 15%; height: 6px;
+        bottom: 20px; left: 15%; right: 15%; height: 4px;
         box-shadow: 
-          0 0 8px #fff,
-          0 -15px 60px 15px var(--neon-glow),
-          0 -30px 100px 40px var(--neon-ambient);
+          0 0 10px #fff,
+          0 -10px 50px 10px var(--neon-glow),
+          0 -20px 80px 30px var(--neon-ambient);
       }
 
       .neon-bar-left {
-        top: 15%; bottom: 15%; left: 20px; width: 6px;
+        top: 15%; bottom: 15%; left: 20px; width: 4px;
         box-shadow: 
-          0 0 8px #fff,
-          15px 0 60px 15px var(--neon-glow),
-          30px 0 100px 40px var(--neon-ambient);
+          0 0 10px #fff,
+          10px 0 50px 10px var(--neon-glow),
+          20px 0 80px 30px var(--neon-ambient);
       }
 
       .neon-bar-right {
-        top: 15%; bottom: 15%; right: 20px; width: 6px;
+        top: 15%; bottom: 15%; right: 20px; width: 4px;
         box-shadow: 
-          0 0 8px #fff,
-          -15px 0 60px 15px var(--neon-glow),
-          -30px 0 100px 40px var(--neon-ambient);
+          0 0 10px #fff,
+          -10px 0 50px 10px var(--neon-glow),
+          -20px 0 80px 30px var(--neon-ambient);
       }
 
       /* Refined Liquid Glass Typography */
@@ -75,9 +81,9 @@
         background: linear-gradient(
           to bottom,
           #ffffff 0%,
-          #e2ecff 35%,
-          #ffffff 50%,
-          #93c5fd 65%,
+          #e2ecff 25%,
+          #4169E1 50%,
+          #2b4acb 75%,
           #ffffff 100%
         );
         background-size: 100% 300%;
@@ -85,8 +91,8 @@
         -webkit-text-fill-color: transparent;
         position: relative;
         display: inline-block;
-        filter: drop-shadow(0 0 5px rgba(186, 230, 253, 0.2));
-        animation: glass-flow 20s infinite linear;
+        filter: drop-shadow(0 0 8px rgba(65, 105, 225, 0.3));
+        animation: glass-flow 15s infinite linear;
       }
 
       @keyframes glass-flow {
@@ -102,14 +108,14 @@
           155deg,
           transparent 0%,
           transparent 48%,
-          rgba(255, 255, 255, 0.6) 50%,
+          rgba(255, 255, 255, 0.4) 50%,
           transparent 52%,
           transparent 100%
         );
         background-size: 400% 400%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        animation: glass-shimmer 12s infinite ease-in-out;
+        animation: glass-shimmer 10s infinite ease-in-out;
         pointer-events: none;
       }
 
@@ -121,10 +127,10 @@
       /* Illuminated Real Glass */
       .glass-panel {
         background: var(--glass-bg);
-        backdrop-filter: blur(50px) saturate(180%);
+        backdrop-filter: blur(50px) saturate(200%);
         border: 1px solid var(--glass-border);
         position: relative;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.5);
       }
 
       .illuminated-glass {
@@ -135,8 +141,8 @@
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0; height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-        box-shadow: 0 0 15px 1px rgba(186, 230, 253, 0.3);
+        background: linear-gradient(90deg, transparent, rgba(65, 105, 225, 0.5), transparent);
+        box-shadow: 0 0 20px 2px rgba(65, 105, 225, 0.4);
         z-index: 10;
         pointer-events: none;
       }
@@ -146,8 +152,8 @@
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        padding: 0.8px;
-        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(65, 105, 225, 0.1) 100%);
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor;
@@ -163,16 +169,16 @@
       }
 
       .etched-button.active {
-        background: rgba(255, 255, 255, 0.08);
-        box-shadow: 0 0 30px rgba(186, 230, 253, 0.12), inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.15);
+        background: rgba(65, 105, 225, 0.12);
+        box-shadow: 0 0 30px rgba(65, 105, 225, 0.15), inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.2);
         color: #fff;
-        border-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(65, 105, 225, 0.2);
       }
 
       ::-webkit-scrollbar { width: 3px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(65, 105, 225, 0.2);
         border-radius: 10px;
       }
     </style>

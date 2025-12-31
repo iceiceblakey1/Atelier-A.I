@@ -74,7 +74,8 @@ const RecordingBooth: React.FC = () => {
         source.start();
       } else if (res.error) {
         setActiveError(res.error);
-        if (res.error.raw?.includes('401') || res.error.raw?.includes('404')) {
+        // Fixed: Use 'details' instead of 'raw' to match updated GenerationResult definition
+        if (res.error.details?.includes('401') || res.error.details?.includes('404')) {
            setHasApiKey(false);
         }
       }
@@ -108,7 +109,8 @@ const RecordingBooth: React.FC = () => {
         source.start();
       } else if (res.error) {
         setActiveError(res.error);
-        if (res.error.raw?.includes('401') || res.error.raw?.includes('404')) {
+        // Fixed: Use 'details' instead of 'raw' to match updated GenerationResult definition
+        if (res.error.details?.includes('401') || res.error.details?.includes('404')) {
            setHasApiKey(false);
         }
       }

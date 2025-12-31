@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { generateImageDetailed, GenerationResult, enhancePrompt } from '../services/geminiService';
 import { GeneratedImage, StudioMode } from '../types';
@@ -10,10 +11,10 @@ const StudioView: React.FC = () => {
   const [gallery, setGallery] = useState<GeneratedImage[]>([]);
   const [activeError, setActiveError] = useState<GenerationResult['error'] | null>(null);
   const [expandedImage, setExpandedImage] = useState<GeneratedImage | null>(null);
+  const [hasApiKey, setHasApiKey] = useState(false);
   
   // Advanced Config
   const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [imageSize, setImageSize] = useState('1K');
   const [showAdvanced, setShowAdvanced] = useState(false);
   
   // Image References
@@ -27,6 +28,23 @@ const StudioView: React.FC = () => {
   const vibeFileInput = useRef<HTMLInputElement>(null);
   const variationFileInput = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      if ((window as any).aistudio) {
+        const selected = await (window as any).aistudio.hasSelectedApiKey();
+        setHasApiKey(selected);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleOpenKeyDialog = async () => {
+    if ((window as any).aistudio) {
+      await (window as any).aistudio.openSelectKey();
+      setHasApiKey(true);
+    }
+  };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: any) => void) => {
     if (e.target.files && e.target.files[0]) {
@@ -53,12 +71,7 @@ const StudioView: React.FC = () => {
   };
 
   const executeGeneration = async () => {
-    const defaultPrompts = {
-      [StudioMode.MASTERPIECE]: "A photorealistic masterpiece with extreme detail.",
-      [StudioMode.COPYCAT]: "Flawless identity reconstruction, perfectly matching the target vibe and lighting.",
-      [StudioMode.VARIATION]: "A high-fidelity variation of the original image, exploring new composition while maintaining style."
-    };
-    const finalPrompt = prompt.trim() || defaultPrompts[activeMode];
+    const finalPrompt = prompt.trim() || "A photorealistic masterpiece generated with neural precision.";
     
     if (isGenerating) return;
     setIsGenerating(true);
@@ -88,7 +101,8 @@ const StudioView: React.FC = () => {
         }
       }
 
-      const res = await generateImageDetailed(finalPrompt, imagesToSend, mode, { aspectRatio, imageSize });
+      // Strictly utilizing gemini-2.5-flash-image
+      const res = await generateImageDetailed(finalPrompt, imagesToSend, mode, { aspectRatio });
 
       if (res.success && res.data) {
         setGallery(prev => [{ 
@@ -149,10 +163,10 @@ const StudioView: React.FC = () => {
         </div>
       )}
 
-      {/* FIXED HEADER - More Compact */}
+      {/* FIXED HEADER */}
       <header className="sticky top-0 z-40 w-full glass-panel illuminated-glass border-b border-white/5 pb-4 pt-6 px-8 flex items-center justify-center bg-black/20 backdrop-blur-md">
         <div className="text-center">
-          <span className="text-[8px] font-bold text-white/10 tracking-[0.8em] uppercase block mb-1">Master Atelier</span>
+          <span className="text-[8px] font-bold text-white/10 tracking-[0.8em] uppercase block mb-1">Flash Engine Architecture</span>
           <h2 className="text-5xl liquid-glass leading-none" data-text={getHeaderTitle()}>
             {getHeaderTitle()}
           </h2>
@@ -161,15 +175,24 @@ const StudioView: React.FC = () => {
 
       {/* SCROLLABLE CONTENT */}
       <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:px-20 space-y-10 relative z-10" ref={scrollContainerRef}>
+        
+        {/* Engine Identifier */}
+        <div className="flex justify-center">
+          <div className="glass-panel px-6 py-2 rounded-full border border-white/5 flex items-center gap-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
+            <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">Gemini 2.5 Flash Image active</span>
+          </div>
+        </div>
+
         <div className="glass-panel illuminated-glass p-8 rounded-[40px] border border-white/10">
           <div className="flex flex-col gap-8">
-            {/* Mode Selection Tabs - Refined */}
+            {/* Mode Selection Tabs */}
             <div className="flex gap-2 p-1 bg-black/60 rounded-[20px] border border-white/5 self-center">
               {[StudioMode.MASTERPIECE, StudioMode.COPYCAT, StudioMode.VARIATION].map(m => (
                 <button 
                   key={m}
                   onClick={() => setActiveMode(m)}
-                  className={`px-8 py-2.5 rounded-[14px] text-[9px] font-bold uppercase tracking-[0.3em] transition-all duration-300 ${activeMode === m ? 'bg-white/10 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
+                  className={`px-8 py-2.5 rounded-[14px] text-[9px] font-bold uppercase tracking-[0.3em] transition-all duration-300 ${activeMode === m ? 'active' : 'text-white/20 hover:text-white/40'}`}
                 >
                   {m.toLowerCase()}
                 </button>
@@ -214,9 +237,7 @@ const StudioView: React.FC = () => {
                     <input type="file" ref={likenessFileInput} onChange={e => handleFile(e, setLikenessImage)} className="hidden" />
                   </button>
                 </div>
-                
-                <div className="text-white/5 font-light text-4xl select-none hidden md:block">×</div>
-
+                <div className="text-white/5 font-light text-4xl hidden md:block select-none">×</div>
                 <div className="flex flex-col items-center gap-4">
                   <div className="text-[8px] font-bold text-white/15 uppercase tracking-[0.6em]">Vibe</div>
                   <button onClick={() => vibeFileInput.current?.click()} className="w-40 h-40 rounded-[32px] etched-button overflow-hidden group shadow-xl">
@@ -248,7 +269,7 @@ const StudioView: React.FC = () => {
                   <input type="file" ref={variationFileInput} onChange={e => handleFile(e, setVariationImage)} className="hidden" />
                 </button>
                 <div className="flex-1 space-y-2">
-                  <p className="text-white/30 text-[10px] font-light italic px-4">Generate aesthetically consistent variations of an image.</p>
+                  <p className="text-white/30 text-[10px] font-light italic px-4">Consistent visual evolution via Gemini 2.5 Flash.</p>
                   <textarea 
                     value={prompt} 
                     onChange={e => setPrompt(e.target.value)} 
@@ -259,20 +280,20 @@ const StudioView: React.FC = () => {
               </div>
             )}
 
-            {/* Advanced Controls - Slimmer */}
+            {/* Advanced Controls */}
             <div className="border-t border-white/5 pt-6">
               <button 
                 onClick={() => setShowAdvanced(!showAdvanced)}
                 className="text-[8px] font-bold uppercase tracking-[0.5em] text-white/15 hover:text-white/50 transition-colors flex items-center gap-3 mb-4"
               >
                 <div className={`w-1 h-1 rounded-full bg-current transition-all ${showAdvanced ? 'scale-125' : ''}`} />
-                Advanced Controls
+                Compositional Metrics
               </button>
               
               {showAdvanced && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-black/40 rounded-[24px] border border-white/5">
+                <div className="p-6 bg-black/40 rounded-[24px] border border-white/5">
                   <div className="space-y-4">
-                    <label className="text-[8px] font-bold text-white/10 uppercase tracking-[0.6em] block">Dimensions</label>
+                    <label className="text-[8px] font-bold text-white/10 uppercase tracking-[0.6em] block">Aspect Ratio</label>
                     <div className="flex gap-2">
                       {['1:1', '16:9', '9:16', '3:4', '4:3'].map(ratio => (
                         <button 
@@ -281,20 +302,6 @@ const StudioView: React.FC = () => {
                           className={`flex-1 py-3 rounded-[12px] text-[9px] font-bold border transition-all ${aspectRatio === ratio ? 'border-white/20 bg-white/5 text-white' : 'border-white/0 text-white/20 hover:text-white/40'}`}
                         >
                           {ratio}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-[8px] font-bold text-white/10 uppercase tracking-[0.6em] block">Definition</label>
-                    <div className="flex gap-2">
-                      {['1K', '2K', '4K'].map(size => (
-                        <button 
-                          key={size}
-                          onClick={() => setImageSize(size)}
-                          className={`flex-1 py-3 rounded-[12px] text-[9px] font-bold border transition-all ${imageSize === size ? 'border-white/20 bg-white/5 text-white' : 'border-white/0 text-white/20 hover:text-white/40'}`}
-                        >
-                          {size}
                         </button>
                       ))}
                     </div>
@@ -328,17 +335,8 @@ const StudioView: React.FC = () => {
               <div className="space-y-4 flex-1">
                 <h4 className="text-red-400 font-bold uppercase tracking-[0.4em] text-[10px]">{activeError.reason}</h4>
                 <p className="text-white/80 text-lg font-light leading-relaxed">{activeError.suggestion}</p>
-                
-                <div className="p-5 bg-black/40 rounded-[20px] border border-white/5 space-y-2 font-mono">
-                  <p className="text-[8px] text-white/10 uppercase tracking-[0.4em] font-bold">Diagnostic Readout</p>
-                  <p className="text-white/30 text-[10px] leading-relaxed break-all">{activeError.details}</p>
-                  {activeError.triggeringTerms && activeError.triggeringTerms.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-3">
-                      {activeError.triggeringTerms.map(term => (
-                        <span key={term} className="px-3 py-1 bg-red-500/5 border border-red-500/10 rounded-full text-[8px] text-red-300/60 font-bold uppercase tracking-widest">{term}</span>
-                      ))}
-                    </div>
-                  )}
+                <div className="p-5 bg-black/40 rounded-[20px] border border-white/5 space-y-2 font-mono text-xs">
+                   {activeError.details}
                 </div>
               </div>
             </div>
@@ -355,20 +353,13 @@ const StudioView: React.FC = () => {
               <div className="mt-6 flex justify-between items-start px-4">
                 <p className="text-lg font-light italic text-white/30 line-clamp-2 leading-relaxed max-w-[85%] font-serif">"{item.prompt}"</p>
                 <div className="text-right">
-                  <span className="text-[8px] font-bold text-white/5 uppercase tracking-[0.6em] block">PLATE</span>
+                  <span className="text-[8px] font-bold text-white/5 uppercase tracking-[0.6em] block">FLASH</span>
                   <span className="text-2xl font-light text-white/5 leading-none">{gallery.length - idx}</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
-
-        {gallery.length === 0 && !isGenerating && (
-          <div className="py-24 flex flex-col items-center opacity-[0.03]">
-             <div className="liquid-glass text-[10rem] leading-none mb-8 select-none" data-text="A">A</div>
-             <h3 className="text-2xl font-light italic tracking-[1.2em] uppercase">Void</h3>
-          </div>
-        )}
       </div>
     </div>
   );

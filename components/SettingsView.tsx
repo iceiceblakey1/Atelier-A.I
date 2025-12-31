@@ -1,22 +1,75 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { GlobalNeuralState, LocalNeuralConfig } from '../types';
 
 const SettingsView: React.FC = () => {
-  const [selectedLiveVoice, setSelectedLiveVoice] = React.useState(localStorage.getItem('live_voice') || 'Zephyr');
-  
-  const voices = [
-    { name: 'Zephyr', gender: 'Male', color: '#7dd3fc' },
-    { name: 'Puck', gender: 'Male', color: '#fcd34d' },
-    { name: 'Charon', gender: 'Male', color: '#94a3b8' },
-    { name: 'Kore', gender: 'Female', color: '#f472b6' },
-    { name: 'Fenrir', gender: 'Male', color: '#f87171' },
-  ];
+  const [config, setConfig] = useState<GlobalNeuralState>({
+    chat: { enabled: false, endpoint: 'http://localhost:11434/api/generate', modelName: 'llama3' },
+    vision: { enabled: false, endpoint: 'http://localhost:11434/api/generate', modelName: 'llava' },
+    studio: { enabled: false, endpoint: 'http://localhost:5000/v1/generation', modelName: 'sdxl' },
+    tts: { enabled: false, endpoint: 'http://localhost:8000/tts', modelName: 'bark' }
+  });
 
-  const handleVoiceChange = (name: string) => {
-    setSelectedLiveVoice(name);
-    localStorage.setItem('live_voice', name);
-    // Notify app to re-establish session or update state
-    window.location.reload(); 
+  useEffect(() => {
+    const stored = localStorage.getItem('neural_config');
+    if (stored) setConfig(JSON.parse(stored));
+  }, []);
+
+  const saveConfig = (newConfig: GlobalNeuralState) => {
+    setConfig(newConfig);
+    localStorage.setItem('neural_config', JSON.stringify(newConfig));
+  };
+
+  const updateModule = (module: keyof GlobalNeuralState, updates: Partial<LocalNeuralConfig>) => {
+    const newConfig = { ...config, [module]: { ...config[module], ...updates } };
+    saveConfig(newConfig);
+  };
+
+  const ModuleConfig: React.FC<{ 
+    title: string; 
+    moduleKey: keyof GlobalNeuralState; 
+    description: string;
+  }> = ({ title, moduleKey, description }) => {
+    const m = config[moduleKey];
+    return (
+      <div className="glass-panel p-8 rounded-[32px] border border-white/5 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-white font-bold uppercase tracking-widest text-xs mb-1">{title}</h4>
+            <p className="text-[10px] text-white/30 italic">{description}</p>
+          </div>
+          <button 
+            onClick={() => updateModule(moduleKey, { enabled: !m.enabled })}
+            className={`px-6 py-2 rounded-full border text-[9px] font-bold uppercase tracking-widest transition-all ${m.enabled ? 'border-blue-500/40 bg-blue-500/10 text-blue-400' : 'border-white/5 text-white/20'}`}
+          >
+            {m.enabled ? 'Local Active' : 'Gemini Cloud'}
+          </button>
+        </div>
+
+        {m.enabled && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="space-y-2">
+              <label className="text-[7px] font-bold text-white/10 uppercase tracking-widest px-2">Neural Endpoint</label>
+              <input 
+                type="text" 
+                value={m.endpoint} 
+                onChange={(e) => updateModule(moduleKey, { endpoint: e.target.value })}
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2 text-[10px] text-white/60 focus:border-white/10 outline-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[7px] font-bold text-white/10 uppercase tracking-widest px-2">Model Identifier</label>
+              <input 
+                type="text" 
+                value={m.modelName} 
+                onChange={(e) => updateModule(moduleKey, { modelName: e.target.value })}
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2 text-[10px] text-white/60 focus:border-white/10 outline-none"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -24,44 +77,51 @@ const SettingsView: React.FC = () => {
       <header className="sticky top-0 z-40 w-full glass-panel illuminated-glass border-b border-white/5 pb-4 pt-6 px-8 flex items-center justify-center bg-black/20 backdrop-blur-md">
         <div className="text-center">
           <span className="text-[8px] font-bold text-white/10 tracking-[0.8em] uppercase block mb-1">System Architecture</span>
-          <h2 className="text-5xl liquid-glass leading-none" data-text="Preferences">Preferences</h2>
+          <h2 className="text-5xl liquid-glass leading-none" data-text="Neural Hub">Neural Hub</h2>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-8 md:p-12 lg:px-24 space-y-12">
-        <div className="glass-panel illuminated-glass p-10 rounded-[48px]">
-          <h3 className="text-xl font-light text-white mb-8 tracking-widest uppercase">Live Assistant Customization</h3>
-          
-          <div className="space-y-10">
-            <section className="space-y-4">
-              <label className="text-[10px] font-bold text-white/20 uppercase tracking-[0.5em] block mb-4">Core Voice Module</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {voices.map(v => (
-                  <div 
-                    key={v.name}
-                    onClick={() => handleVoiceChange(v.name)}
-                    className={`p-6 rounded-[32px] glass-panel transition-all cursor-pointer border-2 ${selectedLiveVoice === v.name ? 'border-white/20 bg-white/5' : 'border-transparent bg-black/40 hover:bg-white/[0.02]'}`}
-                  >
-                    <div className="flex items-center gap-6">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-black" style={{ backgroundColor: v.color }}>
-                        {v.name[0]}
-                      </div>
-                      <div>
-                        <div className="text-lg font-bold text-white">{v.name}</div>
-                        <div className="text-[9px] text-white/30 uppercase tracking-[0.2em]">{v.gender} Synthesis Engine</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+      <div className="flex-1 overflow-y-auto p-8 md:p-12 lg:px-24 space-y-12 pb-40">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="p-8 bg-blue-500/5 rounded-[40px] border border-blue-500/10">
+            <h3 className="text-blue-400 font-bold uppercase tracking-[0.4em] text-[10px] mb-4">Core Operating Logic</h3>
+            <p className="text-white/60 text-sm font-light leading-relaxed">
+              Atelier.G defaults to Google Gemini Cloud engines for superior synthesis. 
+              Toggle individual modules to route neural paths to local instances (e.g. Ollama, SD-WebUI, Bark). 
+              Image model is currently locked to <span className="text-blue-400 font-bold">gemini-2.5-flash-image</span> for cloud-based masterpiece generation.
+            </p>
+          </div>
 
-            <section className="p-8 bg-white/[0.01] rounded-[32px] border border-white/5">
-              <h4 className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em] mb-4">Acoustic Calibration</h4>
-              <p className="text-sm text-white/40 font-light leading-relaxed">
-                The current system is tuned to the Blake persona. Changing the core voice module will restart the neural link to ensure synaptic alignment. Unique voice tuning allows for higher fidelity "asexual tension" and "charismatic frat energy" during live interactions.
-              </p>
-            </section>
+          <div className="grid grid-cols-1 gap-6">
+            <ModuleConfig 
+              title="Journal Engine" 
+              moduleKey="chat" 
+              description="Routes text generation to local LLM frameworks." 
+            />
+            <ModuleConfig 
+              title="Analytic Vision" 
+              moduleKey="vision" 
+              description="Routes multimodal visual analysis to local VLMs." 
+            />
+            <ModuleConfig 
+              title="Atelier Synthesis" 
+              moduleKey="studio" 
+              description="Routes image generation to local Stable Diffusion instances." 
+            />
+            <ModuleConfig 
+              title="Vocal Synthesis" 
+              moduleKey="tts" 
+              description="Routes text-to-speech to local neural voice engines." 
+            />
+          </div>
+
+          <div className="text-center p-12">
+            <button 
+              onClick={() => { localStorage.removeItem('neural_config'); window.location.reload(); }}
+              className="text-[8px] font-bold uppercase tracking-[0.5em] text-white/10 hover:text-red-400 transition-colors"
+            >
+              Reset Synaptic Alignment
+            </button>
           </div>
         </div>
       </div>

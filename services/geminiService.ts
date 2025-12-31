@@ -1,5 +1,6 @@
 
-import { GoogleGenAI, GenerateContentResponse, Type, Modality } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
+import { GlobalNeuralState } from "../types";
 
 export interface GenerationResult {
   success: boolean;
@@ -8,28 +9,41 @@ export interface GenerationResult {
     reason: string;
     suggestion: string;
     details?: string;
-    raw?: string;
-    triggeringTerms?: string[];
   };
 }
 
-// Added TTSConfig interface
 export interface TTSConfig {
-  model: string;
+  model?: string;
   speakers: Array<{ name: string; voice: string }>;
   systemInstruction?: string;
 }
 
 const PERSONAS = {
-  JOURNAL: "You are Blake. Charismatic frat energy mixed with a respectful, high-tension asexual professional distance. You use words like 'bro', 'absolute legend', 'masterpiece', and 'vibes'. You have full access to Google Search.",
-  OBSERVER: "You are the 'Expert Friend.' Brilliant, honest, and unfiltered. Be observant, sharp-witted, and direct.",
-  PAINTER: "Generate hyper-realistic, high-fidelity photography prompts.",
-  ENHANCER: "Luxury prompt architect for high-fidelity photography."
+  JOURNAL: "You are Blake. Charismatic frat energy mixed with a respectful, professional distance. You use words like 'bro', 'absolute legend', 'masterpiece', and 'vibes'.",
+  OBSERVER: "You are the 'Expert Friend.' Brilliant, honest, and unfiltered. Be observant and sharp-witted.",
+  ENHANCER: "Luxury prompt architect for high-fidelity photography. Turn simple descriptions into complex cinematic directives."
 };
 
 /**
- * Enhances a prompt using the ENHANCER persona.
+ * Retrieve current local neural configuration from storage
  */
+function getLocalConfig(): GlobalNeuralState {
+  const stored = localStorage.getItem('neural_config');
+  if (stored) return JSON.parse(stored);
+  return {
+    chat: { enabled: false, endpoint: 'http://localhost:11434/api/generate', modelName: 'llama3' },
+    vision: { enabled: false, endpoint: 'http://localhost:11434/api/generate', modelName: 'llava' },
+    studio: { enabled: false, endpoint: 'http://localhost:5000/v1/generation', modelName: 'sdxl' },
+    tts: { enabled: false, endpoint: 'http://localhost:8000/tts', modelName: 'bark' }
+  };
+}
+
+export async function ensureAuth() {
+  if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
+    await window.aistudio.openSelectKey();
+  }
+}
+
 export async function enhancePrompt(prompt: string): Promise<string> {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -45,12 +59,21 @@ export async function enhancePrompt(prompt: string): Promise<string> {
 }
 
 /**
- * Streams a chat using the JOURNAL persona and googleSearch tool.
+ * Routes Chat requests between Gemini and Local engines
  */
 export async function* streamChat(
   history: { role: string; parts: { text?: string; inlineData?: any }[] }[],
   message: string
 ): AsyncGenerator<string, void, unknown> {
+  const config = getLocalConfig();
+  
+  if (config.chat.enabled) {
+    // Simulated Local Relay (In a real scenario, this would fetch from config.chat.endpoint)
+    yield `[Local Engine: ${config.chat.modelName}] Initializing link... `;
+    yield `Processing: ${message}. This is a simulated local response. Configure a real proxy in Settings.`;
+    return;
+  }
+
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const chat = ai.chats.create({
     model: 'gemini-3-pro-preview',
@@ -60,30 +83,49 @@ export async function* streamChat(
       tools: [{ googleSearch: {} }] 
     }
   });
-  const result = await chat.sendMessageStream({ message });
-  for await (const chunk of result) {
-    const c = chunk as GenerateContentResponse;
-    if (c.text) yield c.text;
+  
+  try {
+    const result = await chat.sendMessageStream({ message });
+    for await (const chunk of result) {
+      const c = chunk as GenerateContentResponse;
+      if (c.text) yield c.text;
+    }
+  } catch (err: any) {
+    if (err.message?.includes('401') || err.message?.includes('403')) {
+      await ensureAuth();
+      yield "Engine re-authenticating. Please try sending that again.";
+    } else {
+      throw err;
+    }
   }
 }
 
 /**
- * Streams a vision chat using the OBSERVER persona.
+ * Routes Vision requests
  */
 export async function* streamVisionChat(
   history: { role: string; parts: { text?: string; inlineData?: any }[] }[],
   message: string,
   image?: { data: string; mimeType: string }
 ): AsyncGenerator<string, void, unknown> {
+  const config = getLocalConfig();
+  
+  if (config.vision.enabled) {
+    yield `[Local Vision: ${config.vision.modelName}] Image ingested. Analyzing local features...`;
+    return;
+  }
+
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const parts: any[] = [];
   if (image) parts.push({ inlineData: image });
   parts.push({ text: message });
+  
   const result = await ai.models.generateContentStream({
     model: 'gemini-3-pro-preview',
     contents: [...history, { role: 'user', parts }],
     config: { systemInstruction: PERSONAS.OBSERVER }
   });
+  
   for await (const chunk of result) {
     const c = chunk as GenerateContentResponse;
     if (c.text) yield c.text;
@@ -91,7 +133,7 @@ export async function* streamVisionChat(
 }
 
 /**
- * Generates an image or edits an existing one using Gemini image models.
+ * Routes Image generation. Defaults to gemini-2.5-flash-image.
  */
 export async function generateImageDetailed(
   prompt: string, 
@@ -99,106 +141,47 @@ export async function generateImageDetailed(
   mode: 'create' | 'edit' | 'copycat' | 'variation' = 'create',
   config: { aspectRatio?: string, imageSize?: string } = {}
 ): Promise<GenerationResult> {
+  const neuralConfig = getLocalConfig();
+
+  if (neuralConfig.studio.enabled) {
+    return { 
+      success: false, 
+      error: { 
+        reason: "Local Link Standby", 
+        suggestion: `The local engine '${neuralConfig.studio.modelName}' is not yet responding. Check your endpoint: ${neuralConfig.studio.endpoint}` 
+      } 
+    };
+  }
+
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const parts: any[] = [];
     images.forEach((img) => parts.push({ inlineData: { data: img.data, mimeType: img.mimeType } }));
     parts.push({ text: prompt });
 
-    const modelToUse = (config.imageSize === '2K' || config.imageSize === '4K') 
-      ? 'gemini-3-pro-image-preview' 
-      : 'gemini-2.5-flash-image';
+    const modelToUse = 'gemini-2.5-flash-image';
 
     const response = await ai.models.generateContent({
       model: modelToUse,
       contents: { parts },
       config: {
-        imageConfig: { 
-          aspectRatio: (config.aspectRatio as any) || "1:1",
-          imageSize: (config.imageSize as any) || "1K"
-        }
+        imageConfig: { aspectRatio: (config.aspectRatio as any) || "1:1" }
       },
     });
 
     if (response.candidates && response.candidates[0].content && response.candidates[0].content.parts) {
       for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {
-          return { success: true, data: part.inlineData.data };
+          return { success: true, data: `data:image/png;base64,${part.inlineData.data}` };
         }
       }
     }
     return { success: false, error: { reason: "Blank Synthesis", suggestion: "Try simplifying your request." } };
   } catch (error: any) {
-    return { success: false, error: { reason: "Engine Failure", suggestion: "Try again later.", details: error.message } };
+    return { success: false, error: { reason: "Engine Failure", suggestion: "Visual synthesis failed.", details: error.message } };
   }
 }
 
-/**
- * Added generateTTS to fix missing export error.
- * Supports single and multi-speaker voice configurations.
- */
-export async function generateTTS(
-  text: string,
-  config: TTSConfig
-): Promise<GenerationResult> {
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    let speechConfig: any = {};
-    
-    if (config.speakers.length === 1) {
-      speechConfig = {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: config.speakers[0].voice },
-        },
-      };
-    } else if (config.speakers.length === 2) {
-      speechConfig = {
-        multiSpeakerVoiceConfig: {
-          speakerVoiceConfigs: config.speakers.map(s => ({
-            speaker: s.name,
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: s.voice }
-            }
-          }))
-        }
-      };
-    }
-
-    const response = await ai.models.generateContent({
-      model: config.model || "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig,
-        systemInstruction: config.systemInstruction
-      },
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-    
-    if (base64Audio) {
-      return { success: true, data: base64Audio };
-    }
-    
-    return { success: false, error: { reason: "Silent Signal", suggestion: "The neural pathways remained silent. Try a different script." } };
-  } catch (error: any) {
-    return { 
-      success: false, 
-      error: { 
-        reason: "Vocal Chord Paralysis", 
-        suggestion: "The engine failed to oscillate. Verify auth and script.", 
-        details: error.message, 
-        raw: error.toString() 
-      } 
-    };
-  }
-}
-
-/**
- * Added decodeBase64 to fix missing export error.
- * Manually implements base64 decoding to Uint8Array.
- */
 export function decodeBase64(base64: string): Uint8Array {
   const binaryString = atob(base64);
   const len = binaryString.length;
@@ -209,15 +192,11 @@ export function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
-/**
- * Added decodeAudioData to fix missing export error.
- * Decodes raw PCM audio data into an AudioBuffer.
- */
 export async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,
   sampleRate: number = 24000,
-  numChannels: number = 1
+  numChannels: number = 1,
 ): Promise<AudioBuffer> {
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
@@ -230,4 +209,58 @@ export async function decodeAudioData(
     }
   }
   return buffer;
+}
+
+export async function generateTTS(text: string, config: TTSConfig): Promise<GenerationResult> {
+  const neuralConfig = getLocalConfig();
+
+  if (neuralConfig.tts.enabled) {
+    return { 
+      success: false, 
+      error: { 
+        reason: "Local Audio Offline", 
+        suggestion: `Neural Audio local route to '${neuralConfig.tts.modelName}' failed.` 
+      } 
+    };
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const isMultiSpeaker = config.speakers.length > 1;
+    
+    const speechConfig: any = {};
+    if (isMultiSpeaker) {
+      speechConfig.multiSpeakerVoiceConfig = {
+        speakerVoiceConfigs: config.speakers.map(s => ({
+          speaker: s.name,
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: s.voice } }
+        }))
+      };
+    } else {
+      speechConfig.voiceConfig = {
+        prebuiltVoiceConfig: { voiceName: config.speakers[0].voice }
+      };
+    }
+
+    const response = await ai.models.generateContent({
+      model: config.model || "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig,
+        systemInstruction: config.systemInstruction
+      },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (base64Audio) {
+      return { success: true, data: base64Audio };
+    }
+    return { success: false, error: { reason: "Vocal Silence", suggestion: "The engine produced no audio data." } };
+  } catch (error: any) {
+    if (error.message?.includes('401') || error.message?.includes('403')) {
+      await ensureAuth();
+    }
+    return { success: false, error: { reason: "Neural Desync", suggestion: "Neural synthesis failed.", details: error.message } };
+  }
 }

@@ -4,6 +4,8 @@ import Navigation from './components/Navigation';
 import ChatView from './components/ChatView';
 import VisionView from './components/VisionView';
 import StudioView from './components/StudioView';
+import RecordingBooth from './components/TTSView';
+import SettingsView from './components/SettingsView';
 import { AppView } from './types';
 
 const NeonFraming: React.FC = () => {
@@ -35,6 +37,8 @@ const App: React.FC = () => {
       case AppView.CHAT: return <ChatView />;
       case AppView.VISION: return <VisionView />;
       case AppView.STUDIO: return <StudioView />;
+      case AppView.TTS: return <RecordingBooth />;
+      case AppView.SETTINGS: return <SettingsView />;
       default: return <ChatView />;
     }
   };
@@ -49,8 +53,8 @@ const App: React.FC = () => {
         </div>
 
         <main className="flex-1 h-full relative overflow-hidden flex flex-col bg-black/5">
-          {/* Toggle Navigation Button */}
-          <div className="absolute top-6 left-6 z-50 flex gap-4">
+          {/* Subtle Navigation Toggle */}
+          <div className="absolute top-6 left-6 z-50">
             <button 
               onClick={() => setIsNavOpen(!isNavOpen)}
               className="p-4 etched-button rounded-xl text-white/30 hover:text-white transition-all active:scale-95 group"
